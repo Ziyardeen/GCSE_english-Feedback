@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-const PaperQuestionSelector = () => {
-  const [paper, setPaper] = useState("");
-  const [source, setSource] = useState("");
-  const [sourceA, setSourceA] = useState("");
-  const [sourceB, setSourceB] = useState("");
-  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false); // State to track disclaimer acceptance
+const PaperQuestionSelector: React.FC = () => {
+  const [paper, setPaper] = useState<string>("");
+  const [source, setSource] = useState<string>("");
+  const [sourceA, setSourceA] = useState<string>("");
+  const [sourceB, setSourceB] = useState<string>("");
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState<boolean>(false);
 
   const navigate = useNavigate();
 
-  // Check if the user has accepted the disclaimer previously
   useEffect(() => {
     const accepted = localStorage.getItem("disclaimerAccepted");
     if (accepted === "true") {
@@ -18,12 +17,11 @@ const PaperQuestionSelector = () => {
     }
   }, []);
 
-  const handlePaperChange = (e) => {
+  const handlePaperChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setPaper(e.target.value);
   };
 
   const handleSubmit = () => {
-    // Validate sources based on the selected paper
     if (paper === "1" && source) {
       navigate("/questions", {
         state: { outcome: { paper, sources: [source] } },
@@ -39,7 +37,7 @@ const PaperQuestionSelector = () => {
 
   const handleDisclaimerAccept = () => {
     setDisclaimerAccepted(true);
-    localStorage.setItem("disclaimerAccepted", "true"); // Store in localStorage to persist
+    localStorage.setItem("disclaimerAccepted", "true");
   };
 
   const handleDisclaimerDecline = () => {

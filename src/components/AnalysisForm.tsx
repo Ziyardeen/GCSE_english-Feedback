@@ -1,21 +1,28 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useLocation } from "react-router";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const MAX_RETRIES = 5;
 const RETRY_DELAY_MS = 5000;
 
-const AnalysisForm = () => {
-  const [selectedPaper, setSelectedPaper] = useState("Paper 1");
-  const [selectedQuestion, setSelectedQuestion] = useState("");
-  const [customQuestion, setCustomQuestion] = useState("");
-  const [response, setResponse] = useState("");
-  const [analysis, setAnalysis] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+interface LocationState {
+  outcome?: {
+    paper?: string;
+    sources?: string[];
+  };
+}
+
+const AnalysisForm: React.FC = () => {
+  const [selectedPaper, setSelectedPaper] = useState<string>("Paper 1");
+  const [selectedQuestion, setSelectedQuestion] = useState<string>("");
+  const [customQuestion, setCustomQuestion] = useState<string>("");
+  const [response, setResponse] = useState<string>("");
+  const [analysis, setAnalysis] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
 
   const location = useLocation();
-  const { paper, sources } = location.state?.outcome || {};
+  const { paper, sources } = (location.state as LocationState)?.outcome || {};
 
   if (!paper || !sources) {
     return (
@@ -25,10 +32,12 @@ const AnalysisForm = () => {
     );
   }
 
-  const genAI = new GoogleGenerativeAI(import.meta.env.VITE_APP_GOOGLE_API_KEY);
+  const genAI = new GoogleGenerativeAI(
+    import.meta.env.VITE_APP_GOOGLE_API_KEY as string
+  );
   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -51,42 +60,40 @@ const AnalysisForm = () => {
 
       Your task is to:
       1. Assign a mark and level based on the AQA mark scheme.
-      2. Provide concise feedback and suggestions of improvement aligned with the question's requirements.
+      2. Provide concise feedback and suggestions for improvement aligned with the question's requirements.
       3. If the response is incomplete, offer a concise model answer.
 
       Format your response as follows:
       **Mark:** [x/y]
       **Level:** [Level]
       **Feedback:** [Provide specific feedback.]
-      **Improvements:** [identify places in my response that need improvement, ways and examples on how to improve them.]
+      **Improvements:** [Identify places in my response that need improvement, ways, and examples on how to improve them.]
       **Model Answer:** [Expected response.]
     `;
 
-    try {
-      const fetchAnalysis = async () => {
-        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-          try {
-            const result = await model.generateContent(prompt);
-            const responseData = result.response.text();
+    const fetchAnalysis = async () => {
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const result = await model.generateContent(prompt);
+          const responseData = await result.response.text();
 
-            setAnalysis(responseData || "No response provided.");
+          setAnalysis(responseData || "No response provided.");
+          setLoading(false);
+          return;
+        } catch (err) {
+          if (attempt < MAX_RETRIES) {
+            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+          } else {
+            setError(
+              "Failed to analyze the response after multiple attempts. Please try again later."
+            );
             setLoading(false);
-            return;
-          } catch (err) {
-            if (attempt < MAX_RETRIES) {
-              await new Promise((resolve) =>
-                setTimeout(resolve, RETRY_DELAY_MS)
-              );
-            } else {
-              setError(
-                "Failed to analyze the response after multiple attempts. Please try again later."
-              );
-              setLoading(false);
-            }
           }
         }
-      };
+      }
+    };
 
+    try {
       await fetchAnalysis();
     } catch (err) {
       setError("Failed to analyze the response. Please try again.");
@@ -95,7 +102,9 @@ const AnalysisForm = () => {
     }
   };
 
-  const getQuestionsForPaper = (paper) => {
+  const getQuestionsForPaper = (
+    paper: string
+  ): { value: string; label: string }[] => {
     if (paper === "Paper 1") {
       return [
         { value: "Q1", label: "Q1: List four things. (4 marks)" },
